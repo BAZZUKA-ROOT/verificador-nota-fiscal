@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Ticket PRO FINAL</title>
+
+<style>
+body {
+    font-family: monospace;
+    background:#0f172a;
+    color:#e2e8f0;
+    padding:10px;
+}
+
+.container {
+    max-width:320px;
+    margin:auto;
+    background:#1e293b;
+    padding:15px;
+    border-radius:10px;
+}
+
+input, button, select {
+    width:100%;
+    margin:4px 0;
+    padding:6px;
+    border-radius:6px;
+    border:none;
+}
+
+input, select {
+    background:#0f172a;
+    color:#fff;
+}
+
+button {
+    background:#38bdf8;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+table { width:100%; border-collapse: collapse; }
+td { font-size:10px; }
+
+.right { text-align:right; }
+.center { text-align:center; }
+.bold { font-weight:bold; }
+.small { font-size:9px; }
+
+hr { border:none; border-top:1px dashed #555; margin:4px 0; }
+
+.remover { color:red; cursor:pointer; }
+
+.cupom {
+    display:none;
+    width:56mm;
+    font-size:10px;
+    background:#fff;
+    color:#000;
+    padding:5px;
+}
+
+/* QR CENTRALIZADO */
+.qr {
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    margin:8px 0;
+}
+
+.qr img {
+    width:110px;
+}
+
+/* IMPRESIÓN */
+@media print {
+    body * { visibility:hidden; }
+    #ticketFinal, #ticketFinal * { visibility:visible; }
+
+    #ticketFinal {
+        position:absolute;
+        left:0;
+        top:0;
+        width:56mm;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container" id="formulario">
+
+<h3>Cliente</h3>
+<select id="clienteSelect" onchange="selecionarCliente(this.value)"></select>
+<input id="nombre" placeholder="Nombre">
+<input id="cpf" placeholder="CPF">
+<button onclick="agregarClienteAlSistema()">💾 Agregar nombre</button>
+<button onclick="excluirClienteSelecionado()">🗑️ Excluir nombre</button>
+
+<h3>Datos venta</h3>
+<input id="caja" placeholder="Caja">
+<input id="ticket" placeholder="Ticket Nº">
+<input id="atendente" placeholder="Atendente">
+<button onclick="gerarDadosVendaAleatorios()">🎲 Gerar novos dados da venda</button>
+
+<h3>Producto</h3>
+
+<select id="productoSelect" onchange="selecionarProducto(this.value)">
+<option value="">Seleccionar producto</option>
+<option value="1">APPLE IPAD 128GB - USD 350.00</option>
+<option value="2">ROBOT XIAOMI S40 - USD 178.00</option>
+<option value="3">SUBWOOFER PIONEER - USD 69.00</option>
+<option value="4">REDMI PAD-2 GRAFT. 8GB/256GB - USD 205.00</option>
+<option value="5">META QUEST 3S VR 128GB - USD 288.00</option>
+</select>
+
+<input id="cod" placeholder="Código">
+<input id="desc" placeholder="Descripción">
+<input id="qtd" type="number" placeholder="Cantidad">
+<input id="precio" type="number" placeholder="Precio USD">
+
+<button onclick="agregarProducto()">Agregar producto</button>
+<button onclick="agregarAlSistema()">💾 Guardar en sistema</button>
+<button onclick="excluirProductoSelecionado()">🗑️ Excluir producto</button>
+
+<h3>Productos agregados</h3>
+<table id="preview"></table>
+
+<hr>
+<div id="totalPreview" class="right bold"></div>
+
+<button onclick="generar()">GENERAR TICKET</button>
+
+</div>
+
+<!-- TICKET -->
+<div class="cupom" id="ticketFinal">
+
+<div class="center bold">ELECTRONICS 318</div>
+<div class="center small">
+RUC: 80362932-2<br>
+VENTUARIO S.A<br>
+AVDA PARAGUAY, SALTO DEL GUAIRA - PY
+</div>
+
+<hr>
+<div class="center bold">KUDE DE FACTURA ELECTRÓNICA</div>
+
+<div class="small">
+<b>timbrado:</b> 18461906 <br>
+<b>inicio vigencia:</b> 28/11/2025<br>
+<b>valido:</b> 31/12/2039<br>
+<b>factura contado no.</b> 03-012-11430<br>
+<b>Regimen Turismo No. Control:</b> GRANDES TIENDAS
+</div>
+
+<hr>
+
+<div class="small">
+<b>CLIENTE:</b> <span id="t_nombre"></span><br>
+<b>CPF:</b> <span id="t_cpf"></span><br>
+<b>NACIONALIDAD:</b> Brasileña
+</div>
+
+<hr>
+
+<div class="small">
+<b>CAJA:</b> <span id="t_caja"></span><br>
+<b>TICKET Nº:</b> <span id="t_ticket"></span><br>
+<b>ATENDENTE:</b> <span id="t_atendente"></span><br>
+<b>FECHA:</b> <span id="fecha"></span><br>
+<b>HORA:</b> <span id="hora"></span>
+</div>
+
+<hr>
+
+<table id="tabla">
+<tr>
+<td>COD</td>
+<td>DESC</td>
+<td>CANT</td>
+<td class="right">USD</td>
+</tr>
+</table>
+
+<hr>
+
+<div id="cant_items"></div>
+
+<div class="center bold">TOTAL A PAGAR</div>
+
+<table>
+<tr>
+<td id="total_gs"></td>
+<td class="center" id="total_usd"></td>
+<td class="right" id="total_brl"></td>
+</tr>
+</table>
+
+<hr>
+
+<div class="bold">FORMA DE PAGO</div>
+
+<table>
+<tr>
+<td>Efectivo (R$)</td>
+<td class="right" id="total_br2"></td>
+</tr>
+
+<tr>
+<td>Subtotal</td>
+<td class="right" id="total_usd_pago"></td>
+</tr>
+
+<tr>
+<td>IVA (10%)</td>
+<td class="right">0,00</td>
+</tr>
+
+<tr>
+<td>Descuento</td>
+<td class="right">0,00</td>
+</tr>
+
+<tr class="bold">
+<td>TOTAL PAGADO</td>
+<td class="right" id="total_br3"></td>
+</tr>
+
+<tr>
+<td>Vuelto</td>
+<td class="right">0,00</td>
+</tr>
+</table>
+
+<hr>
+
+<div class="center small">
+Consulte la validez de esta factura electrónica<br>
+https://ekuatia.set.gov.py/consultas/
+</div>
+
+<hr>
+
+<div class="qr">
+<img id="qrImg" src="">
+</div>
+
+<hr>
+
+<div class="center small">¡Gracias por su compra!</div>
+
+</div>
+
+<script>
+
+const clienteSelect = document.getElementById("clienteSelect");
+const nombre = document.getElementById("nombre");
+const cpf = document.getElementById("cpf");
+const caja = document.getElementById("caja");
+const ticket = document.getElementById("ticket");
+const atendente = document.getElementById("atendente");
+const productoSelect = document.getElementById("productoSelect");
+const cod = document.getElementById("cod");
+const desc = document.getElementById("desc");
+const qtd = document.getElementById("qtd");
+const precio = document.getElementById("precio");
+const preview = document.getElementById("preview");
+const totalPreview = document.getElementById("totalPreview");
+const formulario = document.getElementById("formulario");
+const ticketFinal = document.getElementById("ticketFinal");
+const t_nombre = document.getElementById("t_nombre");
+const t_cpf = document.getElementById("t_cpf");
+const t_caja = document.getElementById("t_caja");
+const t_ticket = document.getElementById("t_ticket");
+const t_atendente = document.getElementById("t_atendente");
+const fecha = document.getElementById("fecha");
+const hora = document.getElementById("hora");
+const tabla = document.getElementById("tabla");
+const total_gs = document.getElementById("total_gs");
+const total_usd = document.getElementById("total_usd");
+const total_brl = document.getElementById("total_brl");
+const total_br2 = document.getElementById("total_br2");
+const total_usd_pago = document.getElementById("total_usd_pago");
+const total_br3 = document.getElementById("total_br3");
+const cant_items = document.getElementById("cant_items");
+const qrImg = document.getElementById("qrImg");
+
+let productos = [];
+
+const clientesPadrao = {
+    1:{nombre:"NOMBRE 01",cpf:"123.456.789-01"},
+    2:{nombre:"NOMBRE 02",cpf:"234.567.890-12"},
+    3:{nombre:"NOMBRE 03",cpf:"345.678.901-23"},
+    4:{nombre:"NOMBRE 04",cpf:"456.789.012-34"}
+};
+
+function lerStorage(chave, padrao){
+    try {
+        const texto = window.localStorage.getItem(chave);
+        if(!texto) return {...padrao};
+        const valor = JSON.parse(texto);
+        return valor && typeof valor === "object" && !Array.isArray(valor)
+            ? {...padrao, ...valor}
+            : {...padrao};
+    } catch(erro) {
+        return {...padrao};
+    }
+}
+
+function salvarStorage(chave, valor){
+    try {
+        window.localStorage.setItem(chave, JSON.stringify(valor));
+    } catch(erro) {
+        // O arquivo continua funcionando mesmo se o navegador bloquear o armazenamento local.
+    }
+}
+
+let clientes = lerStorage("clientes_v3", clientesPadrao);
+
+const produtosPadrao = {
+    "1":{cod:"672986",desc:"APPLE IPAD 128GB",qtd:1,precio:350},
+    "2":{cod:"710401",desc:"ROBOT XIAOMI S40",qtd:1,precio:178},
+    "3":{cod:"532851",desc:"SUBWOOFER PIONEER",qtd:1,precio:69},
+    "4":{cod:"65540",desc:"REDMI PAD-2 GRAFT. 8GB/256GB",qtd:1,precio:205},
+    "5":{cod:"686773",desc:"META QUEST 3S VR 128GB",qtd:1,precio:288}
+};
+
+let produtosPersonalizados = lerStorage("produtos_personalizados_v2", {});
+let produtosExcluidos = lerStorage("produtos_excluidos_v2", {});
+let catalogo = Object.assign({}, produtosPadrao, produtosPersonalizados);
+
+Object.keys(produtosExcluidos).forEach(id => {
+    if(produtosExcluidos[id]) delete catalogo[id];
+});
+
+const atendentes = [
+    "ANA PAULA", "BEATRIZ", "BRUNO", "CAMILA", "CARLOS",
+    "DANIELA", "DIEGO", "EDUARDA", "FERNANDA", "GABRIEL",
+    "ISABELA", "JOÃO", "JULIANA", "LARISSA", "LUCAS",
+    "MARCELA", "MARCOS", "MARIANA", "MATHEUS", "NATALIA",
+    "PAULO", "RAFAELA", "RENATO", "SABRINA", "THIAGO",
+    "VANESSA", "VICTOR", "WESLEY"
+];
+
+function numeroAleatorio(min, max){
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function gerarDadosVendaAleatorios(){
+    caja.value = numeroAleatorio(1, 5);
+    ticket.value = String(numeroAleatorio(0, 9999)).padStart(4, "0");
+    atendente.value = atendentes[numeroAleatorio(0, atendentes.length - 1)];
+}
+
+function guardarClientes(){
+    salvarStorage("clientes_v3", clientes);
+}
+
+function atualizarSelectClientes(){
+    clienteSelect.innerHTML = `<option value="">Seleccionar nombre</option>`;
+    for(const id in clientes){
+        const option = document.createElement("option");
+        option.value = id;
+        option.textContent = clientes[id].nombre;
+        clienteSelect.appendChild(option);
+    }
+}
+
+function selecionarCliente(id){
+    if(!id){
+        nombre.value = "";
+        cpf.value = "";
+        return;
+    }
+    const cliente = clientes[id];
+    nombre.value = cliente.nombre;
+    cpf.value = cliente.cpf;
+}
+
+function agregarClienteAlSistema(){
+    const nomeCliente = nombre.value.trim();
+    const cpfCliente = cpf.value.trim();
+
+    if(!nomeCliente || !cpfCliente){
+        alert("Completa nombre y CPF");
+        return;
+    }
+
+    const existente = Object.keys(clientes).find(id =>
+        clientes[id].nombre.toLowerCase() === nomeCliente.toLowerCase() ||
+        clientes[id].cpf === cpfCliente
+    );
+
+    if(existente){
+        clientes[existente] = {nombre:nomeCliente, cpf:cpfCliente};
+        guardarClientes();
+        atualizarSelectClientes();
+        clienteSelect.value = existente;
+        alert("Nombre actualizado ✅");
+        return;
+    }
+
+    const id = Date.now();
+    clientes[id] = {nombre:nomeCliente, cpf:cpfCliente};
+    guardarClientes();
+    atualizarSelectClientes();
+    clienteSelect.value = id;
+    alert("Nombre guardado ✅");
+}
+
+function excluirClienteSelecionado(){
+    const id = clienteSelect.value;
+
+    if(!id){
+        alert("Selecciona un nombre para excluir");
+        return;
+    }
+
+    if(!confirm(`Excluir ${clientes[id].nombre}?`)) return;
+
+    delete clientes[id];
+    guardarClientes();
+    atualizarSelectClientes();
+    nombre.value = "";
+    cpf.value = "";
+    alert("Nombre excluido ✅");
+}
+
+function guardarCatalogo(){
+    const personalizados = {};
+    Object.keys(catalogo).forEach(id => {
+        if(!produtosPadrao[id]) personalizados[id] = catalogo[id];
+    });
+    salvarStorage("produtos_personalizados_v2", personalizados);
+    salvarStorage("produtos_excluidos_v2", produtosExcluidos);
+}
+
+function atualizarSelect(valorSelecionado = ""){
+    productoSelect.innerHTML = `<option value="">Seleccionar producto</option>`;
+
+    Object.keys(catalogo).forEach(id => {
+        const p = catalogo[id];
+        if(!p) return;
+        const option = document.createElement("option");
+        option.value = id;
+        option.textContent = p.desc + " - USD " + Number(p.precio).toFixed(2);
+        productoSelect.appendChild(option);
+    });
+
+    if(valorSelecionado && catalogo[valorSelecionado]){
+        productoSelect.value = valorSelecionado;
+    }
+}
+
+function selecionarProducto(id){
+    if(!id) return;
+    const p = catalogo[id];
+    cod.value = p.cod;
+    desc.value = p.desc;
+    qtd.value = p.qtd;
+    precio.value = p.precio;
+}
+
+function agregarProducto(){
+    const p = {
+        cod: cod.value,
+        desc: desc.value,
+        qtd: parseFloat(qtd.value),
+        precio: parseFloat(precio.value)
+    };
+
+    if(!p.cod || !p.desc || isNaN(p.qtd) || isNaN(p.precio)){
+        alert("Completa todo");
+        return;
+    }
+
+    productos.push(p);
+    renderTabla();
+    calcularPreview();
+}
+
+function agregarAlSistema(){
+    const novoProduto = {
+        cod: cod.value.trim(),
+        desc: desc.value.trim(),
+        qtd: parseFloat(qtd.value),
+        precio: parseFloat(precio.value)
+    };
+
+    if(!novoProduto.cod || !novoProduto.desc || isNaN(novoProduto.qtd) || isNaN(novoProduto.precio)){
+        alert("Completa todos los datos del producto");
+        return;
+    }
+
+    const existente = Object.keys(catalogo).find(id =>
+        String(catalogo[id].cod).toLowerCase() === novoProduto.cod.toLowerCase() ||
+        catalogo[id].desc.toLowerCase() === novoProduto.desc.toLowerCase()
+    );
+
+    const id = existente || String(Date.now());
+    catalogo[id] = novoProduto;
+    delete produtosExcluidos[id];
+
+    guardarCatalogo();
+    atualizarSelect(id);
+    selecionarProducto(id);
+
+    alert(existente ? "Producto actualizado ✅" : "Producto guardado ✅");
+}
+
+function excluirProductoSelecionado(){
+    const id = productoSelect.value;
+
+    if(!id || !catalogo[id]){
+        alert("Selecciona un producto para excluir");
+        return;
+    }
+
+    if(!confirm(`Excluir ${catalogo[id].desc}?`)) return;
+
+    if(produtosPadrao[id]){
+        produtosExcluidos[id] = true;
+    }
+
+    delete catalogo[id];
+    guardarCatalogo();
+    atualizarSelect();
+
+    cod.value = "";
+    desc.value = "";
+    qtd.value = "";
+    precio.value = "";
+
+    alert("Producto excluido ✅");
+}
+
+function renderTabla(){
+    preview.innerHTML = `
+    <tr>
+        <td>COD</td>
+        <td>DESC</td>
+        <td>CANT</td>
+        <td>USD</td>
+        <td>X</td>
+    </tr>`;
+
+    productos.forEach((p,i)=>{
+        const row = preview.insertRow();
+        row.innerHTML = `
+        <td>${p.cod}</td>
+        <td>${p.desc}</td>
+        <td>${p.qtd}</td>
+        <td>${p.precio}</td>
+        <td class="remover" onclick="remover(${i})">❌</td>`;
+    });
+}
+
+function remover(i){
+    productos.splice(i,1);
+    renderTabla();
+    calcularPreview();
+}
+
+function calcularPreview(){
+    let total=0;
+    productos.forEach(p=> total+=p.qtd*p.precio);
+    totalPreview.textContent = "TOTAL USD: "+total.toFixed(2);
+}
+
+function generar(){
+
+    if(productos.length===0){
+        alert("Agrega productos");
+        return;
+    }
+
+    t_nombre.textContent = nombre.value;
+    t_cpf.textContent = cpf.value;
+    t_caja.textContent = caja.value;
+    t_ticket.textContent = ticket.value;
+    t_atendente.textContent = atendente.value;
+
+    const now = new Date();
+    fecha.textContent = now.toLocaleDateString();
+    hora.textContent = now.toLocaleTimeString();
+
+    tabla.innerHTML = `
+    <tr>
+    <td>COD</td>
+    <td>DESC</td>
+    <td>CANT</td>
+    <td class="right">USD</td>
+    </tr>`;
+
+    let totalUSD=0;
+
+    productos.forEach(p=>{
+        const row = tabla.insertRow();
+        row.innerHTML = `
+        <td>${p.cod}</td>
+        <td>${p.desc}</td>
+        <td>${p.qtd}</td>
+        <td class="right">${p.precio.toFixed(2)}</td>`;
+        totalUSD+=p.qtd*p.precio;
+    });
+
+    const gs = totalUSD*7300;
+    const brl = totalUSD*5.2;
+
+    total_usd.textContent = "USD "+totalUSD.toFixed(2);
+    total_usd_pago.textContent = "USD "+totalUSD.toFixed(2);
+    total_gs.textContent = "Gs. "+gs.toLocaleString();
+    total_brl.textContent = "R$ "+brl.toFixed(2);
+    total_br2.textContent = "R$ "+brl.toFixed(2);
+    total_br3.textContent = "R$ "+brl.toFixed(2);
+
+    cant_items.textContent = "CANTIDAD TOTAL DE ÍTEMS: "+productos.length;
+
+    // QR REAL COM DATOS
+    const dataQR = `TOTAL USD: ${totalUSD.toFixed(2)} - TICKET: ${ticket.value}`;
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(dataQR)}`;
+
+    formulario.style.display="none";
+    ticketFinal.style.display="block";
+
+    setTimeout(()=>window.print(),500);
+}
+
+function iniciarSistema(){
+    atualizarSelectClientes();
+    atualizarSelect();
+    gerarDadosVendaAleatorios();
+}
+
+if(document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", iniciarSistema, {once:true});
+} else {
+    iniciarSistema();
+}
+
+</script>
+
+</body>
+</html>
